@@ -1,0 +1,19 @@
+for j in range(3, 10):
+    g = nx.Graph()
+
+    with open(f"./exact_graphs/exact_00{j}.gr") as f:
+        line = f.readline()
+        while (line[0] == 'c'):
+            line = f.readline()
+        _, problem, vertices, edges = line.split()
+        vertices, edges = int(vertices), int(edges)
+        g.add_nodes_from(range(1, vertices + 1))
+        for i in range(edges):
+            v, u = map(int, f.readline().split())
+            g.add_edge(v, u)
+
+    print(f"Graph {j}")
+    print(g)
+    g_kern = Kernel(g)
+    g_kern.kernelise()
+    print(g)
