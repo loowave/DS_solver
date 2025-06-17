@@ -3,3 +3,5 @@
 /venv
 /exact_graphs
 /test_graphs
+__pychache__
+/heuristic_graphs

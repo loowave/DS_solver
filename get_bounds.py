@@ -4,6 +4,22 @@ from lower_bound_lp import LpGraphSolver
 from local_search import DSAnnealing
 import csv
 from math import ceil
+import signal
+from contextlib import contextmanager
+
+class TimeoutException(Exception):
+    pass
+
+@contextmanager
+def time_limit(seconds):
+    def signal_handler(signum, frame):
+        raise TimeoutException("Timed out!")
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
 
 directory = './exact_graphs'
 
@@ -52,15 +68,14 @@ if __name__ == "__main__":
         writer = csv.writer(csvfile)
 
         # Write header
-        writer.writerow(['graph', 'vertices', 'edges', 'LP_lower_bound',
-                         'LpRound_approx', 'LpRound_approx_annealing'])
+        writer.writerow(['graph', 'vertices', 'LpRoundAnnealing'])
 
-        for filename in os.listdir(directory):
+        for filename in sorted(os.listdir(directory)):
             if not filename.endswith('.gr'):
                 continue
             g = nx.Graph()
             graph = filename
-            vertices, edges = 0, 0
+            vertices = 0
             filepath = os.path.join(directory, filename)
             if not os.path.isfile(filepath):
                 raise FileExistsError
@@ -69,15 +84,17 @@ if __name__ == "__main__":
                 while (line[0] == 'c'):
                     line = f.readline()
                 _, problem, vertices, edges = line.split()
-                vertices, edges = int(vertices), int(edges)
+                vertices = int(vertices)
                 g.add_nodes_from(range(1, vertices + 1))
-                for i in range(edges):
+                for i in range(int(edges)):
                     v, u = map(int, f.readline().split())
                     g.add_edge(v, u)
 
-            lp_lower_bound = ceil(LpGraphSolver(g).SolveDominatingSet())
-            ds_annealing_lp = DSAnnealing(g, 'lp')
-            lp_approx = len(ds_annealing_lp.ds)
-            lp_approx_anneal = ds_annealing_lp.annealing(0.05)
-            writer.writerow([graph, vertices, edges, lp_lower_bound,
-                             lp_approx, lp_approx_anneal])
+            try:
+                with time_limit(40):  # 40 second timeout
+                    ds_annealing_lp = DSAnnealing(g, 'lp')
+                    lp_approx_anneal = ds_annealing_lp.annealing('poly')
+            except TimeoutException:
+                lp_approx_anneal = 'TIMEOUT'
+
+            writer.writerow([graph, vertices, lp_approx_anneal])

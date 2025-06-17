@@ -26,7 +26,7 @@ def approx_2_ds(g_orig: nx.Graph):
         if i not in dominated:
             ds.add(i)
             answer += 1
-    return list(ds)
+    return ds
 
 
 def approx_ln_ds(g_orig: nx.Graph):
@@ -49,4 +49,19 @@ def approx_ln_ds(g_orig: nx.Graph):
         if i not in dominated:
             ds.add(i)
             answer += 1
-    return list(ds)
+    return ds
+
+def approx_greedy_ds(g_orig: nx.Graph):
+    g = g_orig
+    ds = set()
+    dominated = set()
+    n = len(g.nodes)
+    all_vers = set(range(1, n + 1))
+    while len(dominated) != n:
+        v = max(all_vers.difference(ds), key=lambda x: len(set(g.neighbors(x)).difference(ds).difference({x})))
+        ds.add(v)
+        d = set(g.neighbors(v))
+        d.discard(v)
+        dominated.update(d)
+        dominated.add(v)
+    return ds
